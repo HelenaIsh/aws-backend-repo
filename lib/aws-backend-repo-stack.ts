@@ -20,6 +20,18 @@ export class AwsBackendRepoStack extends cdk.Stack {
       },
     );
 
+    const getProductsByIdLambda = new lambda.Function(
+      this,
+      "GetProductsByIdFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        memorySize: 1024,
+        timeout: cdk.Duration.seconds(5),
+        handler: "getProductsById.main",
+        code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+      },
+    );
+
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service API",
       description: "API for Products Service",
@@ -39,6 +51,15 @@ export class AwsBackendRepoStack extends cdk.Stack {
 
     const productsResource = api.root.addResource("products");
     productsResource.addMethod("GET", productsFromLambdaIntegration);
+
+    const productByIdResource = productsResource.addResource("{productId}");
+    const productByIdIntegration = new apigateway.LambdaIntegration(
+      getProductsByIdLambda,
+      {
+        proxy: true,
+      },
+    );
+    productByIdResource.addMethod("GET", productByIdIntegration);
 
     new cdk.CfnOutput(this, "ApiUrl", {
       value: api.url,
