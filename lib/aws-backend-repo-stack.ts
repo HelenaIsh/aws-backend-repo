@@ -12,7 +12,7 @@ export class AwsBackendRepoStack extends cdk.Stack {
       this,
       "GetProductsListFunction",
       {
-        runtime: lambda.Runtime.NODEJS_20_X,
+        runtime: lambda.Runtime.NODEJS_22_X,
         memorySize: 1024,
         timeout: cdk.Duration.seconds(5),
         handler: "getProductsList.main",
@@ -24,7 +24,7 @@ export class AwsBackendRepoStack extends cdk.Stack {
       this,
       "GetProductsByIdFunction",
       {
-        runtime: lambda.Runtime.NODEJS_20_X,
+        runtime: lambda.Runtime.NODEJS_22_X,
         memorySize: 1024,
         timeout: cdk.Duration.seconds(5),
         handler: "getProductsById.main",
