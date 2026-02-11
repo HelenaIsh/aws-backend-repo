@@ -1,10 +1,9 @@
 import { ProductService } from "./services/productService";
 import { ResponseBuilder } from "./utils/responseBuilder";
 
-const productService = new ProductService();
-
 export async function main(event: any) {
   try {
+    const productService = new ProductService();
     const productId = event.pathParameters?.productId;
 
     if (!productId) {

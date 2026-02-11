@@ -1,10 +1,9 @@
 import { ProductService } from "./services/productService";
 import { ResponseBuilder } from "./utils/responseBuilder";
 
-const productService = new ProductService();
-
 export async function main() {
   try {
+    const productService = new ProductService();
     const products = productService.getAllProducts();
     return ResponseBuilder.success(products);
   } catch (error) {
