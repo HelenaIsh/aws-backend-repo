@@ -10,7 +10,7 @@ export async function main(event: any) {
       return ResponseBuilder.badRequest("Product ID is required");
     }
 
-    const product = productService.getProductById(productId);
+    const product = await productService.getProductById(productId);
 
     if (!product) {
       return ResponseBuilder.notFound("Product not found");

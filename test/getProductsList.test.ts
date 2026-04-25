@@ -23,7 +23,7 @@ describe("getProductsList Lambda Handler", () => {
       },
     ];
 
-    getAllProductsSpy.mockReturnValue(mockProducts);
+    getAllProductsSpy.mockResolvedValue(mockProducts);
 
     const result = await main();
 
@@ -34,9 +34,7 @@ describe("getProductsList Lambda Handler", () => {
   });
 
   it("should return 500 on service error", async () => {
-    getAllProductsSpy.mockImplementation(() => {
-      throw new Error("Service error");
-    });
+    getAllProductsSpy.mockRejectedValue(new Error("Service error"));
 
     const result = await main();
 
@@ -47,7 +45,7 @@ describe("getProductsList Lambda Handler", () => {
   });
 
   it("should include CORS headers in response", async () => {
-    getAllProductsSpy.mockReturnValue([]);
+    getAllProductsSpy.mockResolvedValue([]);
 
     const result = await main();
 

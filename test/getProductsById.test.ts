@@ -21,7 +21,7 @@ describe("getProductsById Lambda Handler", () => {
       count: 10,
     };
 
-    getProductByIdSpy.mockReturnValue(mockProduct);
+    getProductByIdSpy.mockResolvedValue(mockProduct);
 
     const event = {
       pathParameters: {
@@ -37,7 +37,7 @@ describe("getProductsById Lambda Handler", () => {
   });
 
   it("should return 404 when product is not found", async () => {
-    getProductByIdSpy.mockReturnValue(undefined);
+    getProductByIdSpy.mockResolvedValue(undefined);
 
     const event = {
       pathParameters: {
@@ -78,9 +78,7 @@ describe("getProductsById Lambda Handler", () => {
   });
 
   it("should return 500 on service error", async () => {
-    getProductByIdSpy.mockImplementation(() => {
-      throw new Error("Service error");
-    });
+    getProductByIdSpy.mockRejectedValue(new Error("Service error"));
 
     const event = {
       pathParameters: {
@@ -97,7 +95,7 @@ describe("getProductsById Lambda Handler", () => {
   });
 
   it("should include CORS headers in all responses", async () => {
-    getProductByIdSpy.mockReturnValue(undefined);
+    getProductByIdSpy.mockResolvedValue(undefined);
 
     const event = {
       pathParameters: {

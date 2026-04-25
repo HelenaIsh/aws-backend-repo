@@ -36,6 +36,10 @@ export class AwsBackendRepoStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(5),
         handler: "getProductsList.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
       },
     );
 
@@ -48,8 +52,17 @@ export class AwsBackendRepoStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(5),
         handler: "getProductsById.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
       },
     );
+
+    productsTable.grantReadData(getProductsListLambda);
+    productsTable.grantReadData(getProductsByIdLambda);
+    stocksTable.grantReadData(getProductsListLambda);
+    stocksTable.grantReadData(getProductsByIdLambda);
 
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service API",
