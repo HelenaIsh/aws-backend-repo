@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Products Service API
+  description: |
+    Product Service API for managing product catalog.
+    This API provides endpoints to retrieve product information.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://api.example.com/prod
+    description: Production server
+  - url: https://api.example.com/dev
+    description: Development server
+
+tags:
+  - name: Products
+    description: Product catalog operations
+
+paths:
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Retrieves a list of all available products
+      operationId: getProductsList
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+              examples:
+                productList:
+                  summary: Example product list
+                  value:
+                    - id: "7567ec4b-b10c-48c5-9345-fc73c48a80aa"
+                      title: "Wireless Headphones"
+                      description: "High-quality wireless headphones with noise cancellation"
+                      price: 199.99
+                      count: 15
+                    - id: "7567ec4b-b10c-48c5-9345-fc73c48a80a1"
+                      title: "Smart Watch"
+                      description: "Feature-rich smartwatch with fitness tracking"
+                      price: 299.99
+                      count: 25
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      description: Retrieves a single product by its unique identifier
+      operationId: getProductsById
+      parameters:
+        - name: productId
+          in: path
+          description: UUID of the product to retrieve
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "7567ec4b-b10c-48c5-9345-fc73c48a80aa"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+              examples:
+                product:
+                  summary: Example product
+                  value:
+                    id: "7567ec4b-b10c-48c5-9345-fc73c48a80aa"
+                    title: "Wireless Headphones"
+                    description: "High-quality wireless headphones with noise cancellation"
+                    price: 199.99
+                    count: 15
+        "400":
+          description: Bad request - Product ID is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingId:
+                  summary: Missing product ID
+                  value:
+                    message: "Product ID is required"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                notFound:
+                  summary: Product not found
+                  value:
+                    message: "Product not found"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - price
+        - count
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the product
+          example: "7567ec4b-b10c-48c5-9345-fc73c48a80aa"
+        title:
+          type: string
+          description: Product name
+          example: "Wireless Headphones"
+        description:
+          type: string
+          description: Product description
+          example: "High-quality wireless headphones with noise cancellation"
+        price:
+          type: number
+          format: double
+          description: Product price in USD
+          minimum: 0
+          example: 199.99
+        count:
+          type: integer
+          description: Available product quantity in stock
+          minimum: 0
+          example: 15
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Product not found"
