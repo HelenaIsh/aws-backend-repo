@@ -2,6 +2,7 @@ import { ProductService } from "./services/productService";
 import { ResponseBuilder } from "./utils/responseBuilder";
 
 export async function main(event: any) {
+  console.log("GET /products/{productId}", JSON.stringify(event));
   try {
     const productService = new ProductService();
     const productId = event.pathParameters?.productId;

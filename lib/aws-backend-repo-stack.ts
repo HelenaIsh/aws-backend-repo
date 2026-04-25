@@ -59,10 +59,28 @@ export class AwsBackendRepoStack extends cdk.Stack {
       },
     );
 
+    const createProductLambda = new lambda.Function(
+      this,
+      "CreateProductFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_22_X,
+        memorySize: 1024,
+        timeout: cdk.Duration.seconds(5),
+        handler: "createProduct.main",
+        code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
+      },
+    );
+
     productsTable.grantReadData(getProductsListLambda);
     productsTable.grantReadData(getProductsByIdLambda);
     stocksTable.grantReadData(getProductsListLambda);
     stocksTable.grantReadData(getProductsByIdLambda);
+    productsTable.grantWriteData(createProductLambda);
+    stocksTable.grantWriteData(createProductLambda);
 
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service API",
@@ -83,6 +101,14 @@ export class AwsBackendRepoStack extends cdk.Stack {
 
     const productsResource = api.root.addResource("products");
     productsResource.addMethod("GET", productsFromLambdaIntegration);
+
+    const createProductIntegration = new apigateway.LambdaIntegration(
+      createProductLambda,
+      {
+        proxy: true,
+      },
+    );
+    productsResource.addMethod("POST", createProductIntegration);
 
     const productByIdResource = productsResource.addResource("{productId}");
     const productByIdIntegration = new apigateway.LambdaIntegration(

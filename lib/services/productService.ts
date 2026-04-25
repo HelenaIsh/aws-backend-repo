@@ -1,6 +1,12 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  ScanCommand,
+  PutCommand,
+  TransactWriteCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { Product } from "../products/products";
+import { randomUUID } from "crypto";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -50,6 +56,50 @@ export class ProductService {
       description: product.description,
       price: product.price,
       count: stock?.count ?? 0,
+    };
+  }
+
+  async createProduct(input: {
+    title: string;
+    description: string;
+    price: number;
+    count: number;
+  }): Promise<Product> {
+    const id = randomUUID();
+
+    await docClient.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: PRODUCTS_TABLE,
+              Item: {
+                id,
+                title: input.title,
+                description: input.description,
+                price: input.price,
+              },
+            },
+          },
+          {
+            Put: {
+              TableName: STOCKS_TABLE,
+              Item: {
+                product_id: id,
+                count: input.count,
+              },
+            },
+          },
+        ],
+      }),
+    );
+
+    return {
+      id,
+      title: input.title,
+      description: input.description,
+      price: input.price,
+      count: input.count,
     };
   }
 }
