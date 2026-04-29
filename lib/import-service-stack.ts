@@ -1,6 +1,9 @@
 import * as cdk from "aws-cdk-lib/core";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as path from "path";
 import { Construct } from "constructs";
 
 export class ImportServiceStack extends cdk.Stack {
@@ -23,5 +26,37 @@ export class ImportServiceStack extends cdk.Stack {
       sources: [s3deploy.Source.data("uploaded/.gitkeep", "")],
       destinationBucket: importBucket,
     });
+
+    const importProductsFileLambda = new lambda.Function(
+      this,
+      "ImportProductsFileFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_22_X,
+        memorySize: 1024,
+        timeout: cdk.Duration.seconds(5),
+        handler: "importProductsFile.main",
+        code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          IMPORT_BUCKET_NAME: importBucket.bucketName,
+        },
+      },
+    );
+
+    importBucket.grantReadWrite(importProductsFileLambda);
+
+    const api = new apigateway.RestApi(this, "ImportApi", {
+      restApiName: "Import Service",
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["*"],
+      },
+    });
+
+    const importResource = api.root.addResource("import");
+    importResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(importProductsFileLambda),
+    );
   }
 }
