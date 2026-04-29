@@ -23,9 +23,9 @@ describe("getProductsList Lambda Handler", () => {
       },
     ];
 
-    getAllProductsSpy.mockReturnValue(mockProducts);
+    getAllProductsSpy.mockResolvedValue(mockProducts);
 
-    const result = await main();
+    const result = await main({});
 
     expect(result.statusCode).toBe(200);
     expect(result.headers["Content-Type"]).toBe("application/json");
@@ -34,11 +34,9 @@ describe("getProductsList Lambda Handler", () => {
   });
 
   it("should return 500 on service error", async () => {
-    getAllProductsSpy.mockImplementation(() => {
-      throw new Error("Service error");
-    });
+    getAllProductsSpy.mockRejectedValue(new Error("Service error"));
 
-    const result = await main();
+    const result = await main({});
 
     expect(result.statusCode).toBe(500);
     expect(JSON.parse(result.body)).toEqual({
@@ -47,9 +45,9 @@ describe("getProductsList Lambda Handler", () => {
   });
 
   it("should include CORS headers in response", async () => {
-    getAllProductsSpy.mockReturnValue([]);
+    getAllProductsSpy.mockResolvedValue([]);
 
-    const result = await main();
+    const result = await main({});
 
     expect(result.headers).toHaveProperty("Access-Control-Allow-Origin");
     expect(result.headers).toHaveProperty("Access-Control-Allow-Methods");

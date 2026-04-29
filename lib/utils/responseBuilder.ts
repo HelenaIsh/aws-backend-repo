@@ -7,7 +7,7 @@ export interface ApiResponse {
 const defaultHeaders = {
   "Content-Type": "application/json",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET",
+  "Access-Control-Allow-Methods": "GET, POST",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -15,6 +15,14 @@ export class ResponseBuilder {
   static success<T>(data: T): ApiResponse {
     return {
       statusCode: 200,
+      headers: defaultHeaders,
+      body: JSON.stringify(data),
+    };
+  }
+
+  static created<T>(data: T): ApiResponse {
+    return {
+      statusCode: 201,
       headers: defaultHeaders,
       body: JSON.stringify(data),
     };

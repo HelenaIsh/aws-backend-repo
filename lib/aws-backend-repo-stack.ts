@@ -3,10 +3,29 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 export class AwsBackendRepoStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const productsTable = new dynamodb.Table(this, "ProductsTable", {
+      tableName: "products",
+      partitionKey: {
+        name: "id",
+        type: dynamodb.AttributeType.STRING,
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const stocksTable = new dynamodb.Table(this, "StocksTable", {
+      tableName: "stocks",
+      partitionKey: {
+        name: "product_id",
+        type: dynamodb.AttributeType.STRING,
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     const getProductsListLambda = new lambda.Function(
       this,
@@ -17,6 +36,10 @@ export class AwsBackendRepoStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(5),
         handler: "getProductsList.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
       },
     );
 
@@ -29,8 +52,35 @@ export class AwsBackendRepoStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(5),
         handler: "getProductsById.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
       },
     );
+
+    const createProductLambda = new lambda.Function(
+      this,
+      "CreateProductFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_22_X,
+        memorySize: 1024,
+        timeout: cdk.Duration.seconds(5),
+        handler: "createProduct.main",
+        code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
+        },
+      },
+    );
+
+    productsTable.grantReadData(getProductsListLambda);
+    productsTable.grantReadData(getProductsByIdLambda);
+    stocksTable.grantReadData(getProductsListLambda);
+    stocksTable.grantReadData(getProductsByIdLambda);
+    productsTable.grantWriteData(createProductLambda);
+    stocksTable.grantWriteData(createProductLambda);
 
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service API",
@@ -51,6 +101,14 @@ export class AwsBackendRepoStack extends cdk.Stack {
 
     const productsResource = api.root.addResource("products");
     productsResource.addMethod("GET", productsFromLambdaIntegration);
+
+    const createProductIntegration = new apigateway.LambdaIntegration(
+      createProductLambda,
+      {
+        proxy: true,
+      },
+    );
+    productsResource.addMethod("POST", createProductIntegration);
 
     const productByIdResource = productsResource.addResource("{productId}");
     const productByIdIntegration = new apigateway.LambdaIntegration(

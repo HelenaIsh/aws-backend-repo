@@ -2,6 +2,7 @@ import { ProductService } from "./services/productService";
 import { ResponseBuilder } from "./utils/responseBuilder";
 
 export async function main(event: any) {
+  console.log("GET /products/{productId}", JSON.stringify(event));
   try {
     const productService = new ProductService();
     const productId = event.pathParameters?.productId;
@@ -10,7 +11,7 @@ export async function main(event: any) {
       return ResponseBuilder.badRequest("Product ID is required");
     }
 
-    const product = productService.getProductById(productId);
+    const product = await productService.getProductById(productId);
 
     if (!product) {
       return ResponseBuilder.notFound("Product not found");
