@@ -5,55 +5,10 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { S3Event } from "aws-lambda";
-import { Readable, Transform, TransformCallback } from "stream";
-import { pipeline } from "stream/promises";
+import csv = require("csv-parser");
+import { Readable } from "stream";
 
 const s3Client = new S3Client({});
-
-class CsvParser extends Transform {
-  private buffer = "";
-  private headers: string[] = [];
-
-  constructor() {
-    super({ objectMode: true });
-  }
-
-  _transform(chunk: Buffer, _encoding: string, callback: TransformCallback) {
-    this.buffer += chunk.toString();
-    const lines = this.buffer.split("\n");
-    this.buffer = lines.pop() || "";
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      if (this.headers.length === 0) {
-        this.headers = trimmed.split(",").map((h) => h.trim());
-      } else {
-        const values = trimmed.split(",").map((v) => v.trim());
-        const record: Record<string, string> = {};
-        this.headers.forEach((header, index) => {
-          record[header] = values[index] ?? "";
-        });
-        this.push(record);
-      }
-    }
-    callback();
-  }
-
-  _flush(callback: TransformCallback) {
-    const trimmed = this.buffer.trim();
-    if (trimmed && this.headers.length > 0) {
-      const values = trimmed.split(",").map((v) => v.trim());
-      const record: Record<string, string> = {};
-      this.headers.forEach((header, index) => {
-        record[header] = values[index] ?? "";
-      });
-      this.push(record);
-    }
-    callback();
-  }
-}
 
 export async function main(event: S3Event) {
   console.log("S3 Event:", JSON.stringify(event));
@@ -68,19 +23,22 @@ export async function main(event: S3Event) {
     const response = await s3Client.send(command);
 
     const stream = response.Body as Readable;
-    const csvParser = new CsvParser();
 
-    const logger = new Transform({
-      objectMode: true,
-      transform(data, _encoding, callback) {
-        console.log("Parsed record:", JSON.stringify(data));
-        callback();
-      },
+    await new Promise<void>((resolve, reject) => {
+      stream
+        .pipe(csv())
+        .on("data", (data: Record<string, string>) => {
+          console.log("Parsed record:", JSON.stringify(data));
+        })
+        .on("error", (error: Error) => {
+          console.error("Error parsing CSV:", error);
+          reject(error);
+        })
+        .on("end", () => {
+          console.log(`Finished parsing file: ${key}`);
+          resolve();
+        });
     });
-
-    await pipeline(stream, csvParser, logger);
-
-    console.log(`Finished parsing file: ${key}`);
 
     const newKey = key.replace("uploaded/", "parsed/");
 
