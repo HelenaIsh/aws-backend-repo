@@ -159,5 +159,15 @@ export class AwsBackendRepoStack extends cdk.Stack {
       value: `${api.url}products`,
       description: "Products endpoint URL",
     });
+
+    new cdk.CfnOutput(this, "CatalogItemsQueueArn", {
+      value: catalogItemsQueue.queueArn,
+      exportName: "CatalogItemsQueueArn",
+    });
+
+    new cdk.CfnOutput(this, "CatalogItemsQueueUrl", {
+      value: catalogItemsQueue.queueUrl,
+      exportName: "CatalogItemsQueueUrl",
+    });
   }
 }
