@@ -5,6 +5,8 @@ import * as path from "path";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class AwsBackendRepoStack extends cdk.Stack {
@@ -88,6 +90,14 @@ export class AwsBackendRepoStack extends cdk.Stack {
       queueName: "catalogItemsQueue",
     });
 
+    const createProductTopic = new sns.Topic(this, "CreateProductTopic", {
+      topicName: "createProductTopic",
+    });
+
+    createProductTopic.addSubscription(
+      new snsSubscriptions.EmailSubscription("elena_ishmatova@epam.com"),
+    );
+
     const catalogBatchProcessLambda = new lambda.Function(
       this,
       "CatalogBatchProcessFunction",
@@ -100,6 +110,7 @@ export class AwsBackendRepoStack extends cdk.Stack {
         environment: {
           PRODUCTS_TABLE_NAME: productsTable.tableName,
           STOCKS_TABLE_NAME: stocksTable.tableName,
+          SNS_TOPIC_ARN: createProductTopic.topicArn,
         },
       },
     );
@@ -112,6 +123,7 @@ export class AwsBackendRepoStack extends cdk.Stack {
 
     productsTable.grantWriteData(catalogBatchProcessLambda);
     stocksTable.grantWriteData(catalogBatchProcessLambda);
+    createProductTopic.grantPublish(catalogBatchProcessLambda);
 
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service API",
